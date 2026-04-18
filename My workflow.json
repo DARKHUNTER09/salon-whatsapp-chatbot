@@ -1,0 +1,582 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twilio-salon",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "013b297e-9ef5-4884-8952-e6181b737f83",
+      "name": "Twilio Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1056,
+        352
+      ],
+      "webhookId": "twilio-salon-bot"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "id": "560b937d-9da8-4332-913d-691e49c287f1",
+      "name": "Acknowledge Twilio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nif (!body) {\n  return [{ json: { skip: true, intent: 'unknown', from: 'unknown', to: '', replyText: '' } }];\n}\n\nconst from = body.From || '';\nconst to = body.To || '';\nconst text = (body.Body || '').toLowerCase().trim();\nconst customerName = body.ProfileName || 'Guest';\n\nif (!text) {\n  return [{ json: { skip: true, intent: 'unknown', from, to, replyText: '' } }];\n}\n\nlet intent = 'unknown';\nif (/^(hi|hello|hey|hii|hiii|helo|namaste|start|help)/.test(text)) {\n  intent = 'greeting';\n} else if (/book|booking|appointment/.test(text)) {\n  intent = 'book';\n} else if (/menu|service|price|haircut|facial|massage|manicure|pedicure|color/.test(text)) {\n  intent = 'menu';\n} else if (/staff|stylist|team|barber|beautician/.test(text)) {\n  intent = 'staff';\n} else if (/offer|discount|deal|promo|special/.test(text)) {\n  intent = 'offers';\n} else if (/status|my booking|confirm|track/.test(text)) {\n  intent = 'status';\n}\n\nreturn [{\n  json: {\n    from,\n    to,\n    customerName,\n    text,\n    intent,\n    skip: false,\n    replyText: ''\n  }\n}];"
+      },
+      "id": "4bb0d1ff-051b-4044-8bce-f9b6c764f468",
+      "name": "Parse Message & Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "bb4bfd70-7d41-40a0-846e-7329511f0de3"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "ba63fdf2-6edb-47a9-a00e-31273cff0bb5",
+      "name": "Skip Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\nconst name = inputData.customerName || 'Guest';\n\nconst reply = `✂️ *Glamour Unisex Salon* mein aapka swagat hai, ${name}! 🌟\n\nNiche reply karo:\n\n1️⃣ *book*\n2️⃣ *menu*\n3️⃣ *staff*\n4️⃣ *offer*\n5️⃣ *status*`;\n\nreturn {\n  from: inputData.from,\n  to: inputData.to,\n  customerName: inputData.customerName,\n  intent: inputData.intent,\n  replyText: reply\n};"
+      },
+      "id": "6f871dee-cdc3-4ca0-9507-c7732049a1e4",
+      "name": "Greeting",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Hardcoded menu — ya Google Sheets node se replace kar sakte ho\nconst reply = `💅 *Services & Prices*\n\n*── Hair ──*\n• Haircut (Men) — ₹200 (30 min)\n• Haircut (Women) — ₹350 (45 min)\n• Hair Color — ₹800 (90 min)\n• Keratin Treatment — ₹2500 (3 hrs)\n\n*── Skin ──*\n• Facial — ₹600 (60 min)\n• Cleanup — ₹300 (30 min)\n• D-Tan — ₹400 (45 min)\n\n*── Nails ──*\n• Manicure — ₹400 (45 min)\n• Pedicure — ₹500 (60 min)\n\n📞 Book karne ke liye *book* type karo!`;\nreturn [{ json: { ...$json, replyText: reply } }];"
+      },
+      "id": "bebd5f8e-78d3-4f65-b474-c23c8f854b1e",
+      "name": "Menu Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = `👩‍🎨 *Hamare Expert Stylists*\n\n🟢 *Priya Sharma*\n   🎯 Hair Color & Styling\n   ⭐ 5 saal ka experience\n\n🟢 *Rahul Verma*\n   🎯 Men's Haircut & Beard\n   ⭐ 4 saal ka experience\n\n🟢 *Sneha Patil*\n   🎯 Skin & Facials\n   ⭐ 3 saal ka experience\n\n📅 Preferred stylist ke saath book karo — *book* type karo!`;\nreturn [{ json: { ...$json, replyText: reply } }];"
+      },
+      "id": "a3d98173-7d4c-40c1-a65a-c4ebc66d06ef",
+      "name": "Staff Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = `🎉 *Latest Offers & Discounts*\n\n🏷️ *Weekend Special*\n   Haircut + Wash combo\n   💰 20% off | Valid: 30 Apr 2025\n\n🏷️ *First Visit Offer*\n   Kisi bhi service pe pehli baar\n   💰 15% off | Valid: 31 May 2025\n\n🏷️ *Summer Glow*\n   Facial + Cleanup\n   💰 25% off | Valid: 15 Jun 2025\n\n💬 Offer book karne ke liye *book* type karo!`;\nreturn [{ json: { ...$json, replyText: reply } }];"
+      },
+      "id": "2582b421-0a4d-4d45-a05e-66173c274a3f",
+      "name": "Offers Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple status — real app mein Google Sheets se lookup hoga\nconst reply = `📋 *Booking Status*\n\nApna registered naam ya booking ID bhejo, hum check karte hain!\n\nExample: _Priya Sharma_\n\nYa directly call karo:\n📞 +91 98765 43210`;\nreturn [{ json: { ...$json, replyText: reply } }];"
+      },
+      "id": "18e6700c-8048-4d01-8bfc-b2aa1be80f86",
+      "name": "Status Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = `🤔 Sorry, main samjha nahi!\n\nPlease in mein se koi type karo:\n• *book* — Appointment\n• *menu* — Services & prices\n• *staff* — Hamare stylists\n• *offer* — Deals & discounts\n• *status* — Booking check\n\nOr *hi* type karo restart ke liye! 😊`;\nreturn [{ json: { ...$json, replyText: reply } }];"
+      },
+      "id": "26808140-bd26-4c3b-8621-5a32ed2b5133",
+      "name": "Unknown Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/AC1ec347eca5bbcf7b73bb01ab8512c7af/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "=whatsapp:+1XXXXXXXXX"
+            },
+            {
+              "name": "To",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.replyText }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "81d524af-79b4-44f8-80fc-282e96650615",
+      "name": "Send WhatsApp Reply via Twilio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        416,
+        464
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "6i9MNLzAi64Iok8s",
+          "name": "twilo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "greeting ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "eb1fe0fb-a9a5-484e-a1d0-a00b3304ba52"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Greeting "
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d3ea258d-8191-44ed-9f8b-23e67efab4c6",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "book",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Book"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8ac754f3-a8d7-4d16-90bc-ca167d991681",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "menu",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Menu"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e8185073-23d9-4218-a812-5d25268bc694",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "staff",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Staff"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ae1f5206-58b2-4db5-a3fc-22e0d6cc34ba",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "offers",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Offers"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d6e1bab1-df84-42fc-8579-36f9e3fdca42",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Status"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Unknown"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -432,
+        384
+      ],
+      "id": "a74ef119-9e33-45ea-b99f-eded59259d80",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\n\nconst reply = `📅 *Appointment Booking*\n\nNiche format mein details bhejo:\n\n👤 Naam: \n📅 Date (DD/MM/YYYY): \n⏰ Time (e.g. 11:00 AM): \n💇 Service: \n✂️ Stylist (optional): \n\n_Example:_\nNaam: Priya\nDate: 25/04/2025\nTime: 11:00 AM\nService: Haircut\nStylist: Koi bhi\n\nHum jaldi confirm karenge! ✅`;\n\nreturn {\n  from: inputData.from,\n  to: inputData.to,\n  customerName: inputData.customerName,\n  intent: inputData.intent,\n  replyText: reply\n}"
+      },
+      "id": "4309afbc-f057-45d6-ac5a-1d5e835bbd8a",
+      "name": "book",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        496
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Twilio Webhook": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Twilio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Parse Message & Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Message & Intent": {
+      "main": [
+        [
+          {
+            "node": "Skip Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Empty": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Greeting": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Menu Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Staff Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Offers Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Greeting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "book",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Menu Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Staff Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Offers Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Status Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "b470d58e-4fd1-4f84-a950-4c4243c661f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b16886ccc7b215ff53ad3a72fc8362186eb88fff76a67b023f77a16c4074332"
+  },
+  "id": "cnJ3sWcBZOg3NkJL",
+  "tags": []
+}
